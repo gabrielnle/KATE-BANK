@@ -299,9 +299,17 @@ export const adminRouter = router({
 
     for (const reservation of pending) {
       try {
-        const wallet     = reservation.investor.wallet
+        const wallet = reservation.investor.wallet
+        if (!wallet) {
+          results.failed++
+          continue
+        }
+
         const tokenAsset = reservation.offer.token_assets[0]
-        if (!wallet || !tokenAsset) { results.failed++; continue }
+        if (!tokenAsset) {
+          results.failed++
+          continue
+        }
 
         const result = await client.transferTokens(
           wallet.stellar_public_key,
