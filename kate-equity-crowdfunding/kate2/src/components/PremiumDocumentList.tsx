@@ -160,6 +160,7 @@ export function PremiumDocumentList({ documents, offerId }: Props) {
             {/* Close */}
             <button
               onClick={() => setDialogDoc(null)}
+              aria-label="Fechar"
               className="absolute top-4 right-4 w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"
             >
               <X size={14} className="text-white/40" />
