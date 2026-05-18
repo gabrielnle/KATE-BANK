@@ -396,7 +396,7 @@ export class SimulatedStellarClient {
  * In production, this would be a real regulated stablecoin issuer.
  */
 const BANK_BRZ_SECRET = process.env.BANK_BRZ_SECRET
-const BANK_BRZ_PUBLIC = 'GBZSVPMLAFST5U6BNSPM5ISWY7DL7HVETNFHZWZD3A63KMMO6MO7T4WH'
+const BANK_BRZ_PUBLIC = process.env.BANK_BRZ_PUBLIC || ''
 
 /**
  * Anchor Backend Simulation (SEP-24) — Depósito PIX → BRZ na Stellar Testnet.
