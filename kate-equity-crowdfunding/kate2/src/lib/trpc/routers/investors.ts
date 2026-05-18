@@ -25,17 +25,24 @@ export const investorsRouter = router({
   /** Create or update investor profile (KYC data) */
   upsertProfile: protectedProcedure
     .input(z.object({
-      investor_type:         z.enum(['retail', 'qualified', 'professional', 'lead']).optional(),
       annual_income:         z.number().optional(),
       financial_investments: z.number().optional(),
       risk_profile:          z.string().optional(),
       is_active_investor:    z.boolean().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      // Calculate annual limit based on CVM 88 rules
-      let annual_limit: number | undefined
-      if (input.investor_type === 'qualified' || input.investor_type === 'professional') {
-        annual_limit = undefined // No limit
+      // Get existing profile to check current investor type (prevent self-certification bypass)
+      const existingProfile = await ctx.prisma.investorProfile.findUnique({
+        where: { user_id: ctx.userId },
+        select: { investor_type: true },
+      })
+
+      const currentType = existingProfile?.investor_type ?? 'retail'
+
+      // Calculate annual limit based on CVM 88 rules and existing type
+      let annual_limit: number | null | undefined
+      if (currentType === 'qualified' || currentType === 'professional') {
+        annual_limit = null // No limit
       } else if (input.is_active_investor) {
         annual_limit = 20000 // R$ 20k for active retail investors per year per platform
       } else {
@@ -47,7 +54,13 @@ export const investorsRouter = router({
 
       return ctx.prisma.investorProfile.upsert({
         where:  { user_id: ctx.userId },
-        create: { ...input, user_id: ctx.userId, annual_limit, used_limit: 0 },
+        create: {
+          ...input,
+          user_id: ctx.userId,
+          investor_type: 'retail', // Always default new profiles to retail
+          annual_limit,
+          used_limit: 0
+        },
         update: { ...input, annual_limit },
       })
     }),
