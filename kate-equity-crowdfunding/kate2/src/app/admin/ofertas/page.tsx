@@ -20,17 +20,29 @@ const secTypeLabel: Record<string, string> = {
 }
 
 export default async function AdminOfertasPage() {
-  const offers = await prisma.offer.findMany({
-    include: {
-      issuer:       true,
-      token_assets: true,
-      reservations: {
-        where:  { status: { in: ['confirmed', 'settled'] } },
-        select: { amount_brz: true, status: true },
+  const [offers, reservationsAgg] = await Promise.all([
+    prisma.offer.findMany({
+      include: {
+        issuer:       true,
+        token_assets: true,
       },
-    },
-    orderBy: { created_at: 'desc' },
-  }).catch(() => [])
+      orderBy: { created_at: 'desc' },
+    }),
+    prisma.reservation.groupBy({
+      by: ['offer_id'],
+      where: { status: { in: ['confirmed', 'settled'] } },
+      _sum: { amount_brz: true },
+      _count: { id: true },
+    })
+  ]).catch(() => [[], []])
+
+  // Map for O(1) lookups instead of .filter() and .reduce() on the full array
+  const aggMap = new Map(
+    reservationsAgg.map(agg => [
+      agg.offer_id,
+      { raised: agg._sum.amount_brz ?? 0, count: agg._count.id }
+    ])
+  )
 
   return (
     <div className="p-8">
@@ -62,8 +74,10 @@ export default async function AdminOfertasPage() {
               </tr>
             )}
             {offers.map(offer => {
-              const confirmed = offer.reservations
-              const raised = confirmed.reduce((s, r) => s + (r.amount_brz ?? 0), 0)
+              // ⚡ Bolt: Offloaded to DB aggregate query to prevent loading all reservations into memory
+              const agg = aggMap.get(offer.id) ?? { raised: 0, count: 0 }
+              const raised = agg.raised
+              const confirmedCount = agg.count
               const progress = offer.max_target ? Math.min((raised / offer.max_target) * 100, 100) : 0
               const st = statusLabel[offer.status ?? 'draft'] ?? statusLabel.draft
 
@@ -94,7 +108,7 @@ export default async function AdminOfertasPage() {
                       <p className="text-white/30 text-xs mt-0.5">{progress.toFixed(0)}%</p>
                     </div>
                   </td>
-                  <td className="px-5 py-4 text-white/60">{confirmed.length}</td>
+                  <td className="px-5 py-4 text-white/60">{confirmedCount}</td>
                   <td className="px-5 py-4">
                     <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${st.cls}`}>
                       {st.label}
