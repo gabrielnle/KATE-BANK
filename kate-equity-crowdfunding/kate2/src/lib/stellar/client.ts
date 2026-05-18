@@ -395,7 +395,7 @@ export class SimulatedStellarClient {
  * This account issues the BRZ stablecoin on the Stellar Testnet.
  * In production, this would be a real regulated stablecoin issuer.
  */
-const BANK_BRZ_SECRET = process.env.BANK_BRZ_SECRET || ''
+const BANK_BRZ_SECRET = process.env.BANK_BRZ_SECRET
 const BANK_BRZ_PUBLIC = 'GBZSVPMLAFST5U6BNSPM5ISWY7DL7HVETNFHZWZD3A63KMMO6MO7T4WH'
 
 /**
@@ -437,7 +437,7 @@ export async function simulatePixToBRZ(
   let userKeypair: StellarSdk.Keypair
 
   if (!BANK_BRZ_SECRET) {
-    throw new Error('BANK_BRZ_SECRET não configurada.')
+    throw new Error('Variável de ambiente BANK_BRZ_SECRET ausente. Por favor, configure a chave secreta do banco no .env.')
   }
 
   try {
