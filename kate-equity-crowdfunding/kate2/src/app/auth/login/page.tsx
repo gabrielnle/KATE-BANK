@@ -102,7 +102,9 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPass(v => !v)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/70"
+                  aria-label={showPass ? 'Ocultar senha' : 'Mostrar senha'}
+                  title={showPass ? 'Ocultar senha' : 'Mostrar senha'}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-kate-yellow rounded-md p-0.5"
                 >
                   {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
