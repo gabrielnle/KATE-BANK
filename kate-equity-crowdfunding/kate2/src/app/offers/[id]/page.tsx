@@ -5,6 +5,7 @@ import {
   ArrowLeft, Shield, Calendar, TrendingUp,
   FileText, AlertTriangle, ExternalLink, Users, FolderLock
 } from 'lucide-react'
+import { getSafeUrl } from '@/lib/url'
 import { PremiumDocumentList } from '@/components/PremiumDocumentList'
 import { InvestCheckoutCard } from '@/components/InvestCheckoutCard'
 import type { Metadata } from 'next'
@@ -131,7 +132,7 @@ export default async function OfferDetailPage({ params }: Props) {
                 <div key={f.label}>
                   <span className="text-white/40 block mb-0.5">{f.label}</span>
                   {f.isLink ? (
-                    <a href={f.value!} target="_blank" rel="noopener noreferrer"
+                    <a href={getSafeUrl(f.value!)} target="_blank" rel="noopener noreferrer"
                       className="text-kate-yellow hover:underline flex items-center gap-1">
                       {f.value} <ExternalLink size={12} />
                     </a>

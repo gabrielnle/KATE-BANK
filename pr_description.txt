@@ -1,0 +1,8 @@
+🎯 **What:** The vulnerability fixed
+Fixed a potential Cross-Site Scripting (XSS) vulnerability in `kate2/src/app/offers/[id]/page.tsx` where an unvalidated user-provided URL (`offer.issuer.website`) was directly used in the `href` attribute of an anchor tag.
+
+⚠️ **Risk:** The potential impact if left unfixed
+If left unfixed, an attacker could provide a malicious URL scheme such as `javascript:alert('XSS')` instead of a valid web address. When a user clicks the link, arbitrary JavaScript would execute in the context of the user's session. This could lead to session hijacking, unauthorized actions, or data theft.
+
+🛡️ **Solution:** How the fix addresses the vulnerability
+A utility function `getSafeUrl` was created in `src/lib/url.ts` that safely attempts to parse the URL. It ensures that the URL protocol is either `http:` or `https:`. If the URL lacks a protocol (like "example.com"), it prepends `https://`. If an invalid or potentially malicious protocol like `javascript:` or `data:` is detected, it returns a safe fallback `#`. The `page.tsx` component now wraps the user-provided URL with this function. Unit tests were also added in `src/lib/url.test.ts` to verify the sanitization logic.
