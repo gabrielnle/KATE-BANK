@@ -1,5 +1,5 @@
 import { expect, test, describe } from "bun:test";
-import { SimulatedStellarClient } from "./client";
+import { SimulatedStellarClient, getStellarConfigDebug, type StellarEnv } from "./client";
 
 describe("SimulatedStellarClient", () => {
   test("generateKeypair returns valid keys with cryptographically secure random ID", () => {
@@ -16,5 +16,42 @@ describe("SimulatedStellarClient", () => {
     const id1 = keypair1.publicKey.substring(1, 9);
     expect(id1).toHaveLength(8);
     expect(id1).toMatch(/^[0-9A-F]+$/);
+  });
+});
+
+describe("getStellarConfigDebug", () => {
+  test("handles missing STELLAR_USE_TESTNET by defaulting to true", () => {
+    const env: StellarEnv = {
+      STELLAR_KATE_SECRET_KEY: "secret",
+      STELLAR_KATE_PUBLIC_KEY: "public",
+      STELLAR_SIMULATION_MODE: "false"
+    };
+
+    const config = getStellarConfigDebug(env);
+    expect(config.isTestnet).toBe(true);
+  });
+
+  test("handles STELLAR_USE_TESTNET=false correctly", () => {
+    const env: StellarEnv = {
+      STELLAR_KATE_SECRET_KEY: "secret",
+      STELLAR_KATE_PUBLIC_KEY: "public",
+      STELLAR_USE_TESTNET: "false",
+      STELLAR_SIMULATION_MODE: "false"
+    };
+
+    const config = getStellarConfigDebug(env);
+    expect(config.isTestnet).toBe(false);
+  });
+
+  test("handles STELLAR_USE_TESTNET=true correctly", () => {
+    const env: StellarEnv = {
+      STELLAR_KATE_SECRET_KEY: "secret",
+      STELLAR_KATE_PUBLIC_KEY: "public",
+      STELLAR_USE_TESTNET: "true",
+      STELLAR_SIMULATION_MODE: "false"
+    };
+
+    const config = getStellarConfigDebug(env);
+    expect(config.isTestnet).toBe(true);
   });
 });
