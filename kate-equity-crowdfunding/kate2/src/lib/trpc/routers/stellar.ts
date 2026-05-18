@@ -182,19 +182,8 @@ export const stellarRouter = router({
     try {
       const account = await server.loadAccount(wallet.stellar_public_key)
 
-      let xlm = '0'
-      let brz = '0'
-
-      for (const bal of account.balances) {
-        if (bal.asset_type === 'native') {
-          xlm = bal.balance
-        }
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const assetBal = bal as any
-        if (bal.asset_type !== 'native' && assetBal.asset_code === 'BRZ') {
-          brz = assetBal.balance
-        }
-      }
+      const xlm = account.balances.find((bal) => bal.asset_type === 'native')?.balance ?? '0'
+      const brz = account.balances.find((bal) => bal.asset_type !== 'native' && 'asset_code' in bal && bal.asset_code === 'BRZ')?.balance ?? '0'
 
       return {
         xlm,
