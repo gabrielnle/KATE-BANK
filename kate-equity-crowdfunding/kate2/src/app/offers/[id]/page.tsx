@@ -130,7 +130,7 @@ export default async function OfferDetailPage({ params }: Props) {
               ].filter(f => f.value).map(f => (
                 <div key={f.label}>
                   <span className="text-white/40 block mb-0.5">{f.label}</span>
-                  {f.isLink ? (
+                  {f.isLink && /^https?:\/\//i.test(f.value!) ? (
                     <a href={f.value!} target="_blank" rel="noopener noreferrer"
                       className="text-kate-yellow hover:underline flex items-center gap-1">
                       {f.value} <ExternalLink size={12} />
