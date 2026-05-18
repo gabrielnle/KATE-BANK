@@ -120,10 +120,11 @@ export function InvestCheckoutCard({
 
           {/* Amount Input */}
           <div>
-            <label className="text-white/40 text-xs block mb-2">
+            <label htmlFor="investment-amount" className="text-white/40 text-xs block mb-2">
               Valor ({currency === 'BRZ' ? 'R$' : 'USD'})
             </label>
             <input
+              id="investment-amount"
               type="number"
               min={minInvestment}
               step="0.01"
