@@ -297,28 +297,37 @@ export const adminRouter = router({
     const client  = createStellarClient(stellarEnv)
     const results = { success: 0, failed: 0, errors: [] as string[] }
 
-    for (const reservation of pending) {
-      try {
-        const wallet     = reservation.investor.wallet
-        const tokenAsset = reservation.offer.token_assets[0]
-        if (!wallet || !tokenAsset) { results.failed++; continue }
+    const promises = pending.map(async (reservation) => {
+      const wallet     = reservation.investor.wallet
+      const tokenAsset = reservation.offer.token_assets[0]
+      if (!wallet || !tokenAsset) {
+        throw new Error("Missing wallet or token asset")
+      }
 
-        const result = await client.transferTokens(
-          wallet.stellar_public_key,
-          tokenAsset.token_symbol ?? 'RWA',
-          reservation.token_quantity ?? 0,
-          `INV-${reservation.id.slice(0, 8)}`
-        )
+      const result = await client.transferTokens(
+        wallet.stellar_public_key,
+        tokenAsset.token_symbol ?? 'RWA',
+        reservation.token_quantity ?? 0,
+        `INV-${reservation.id.slice(0, 8)}`
+      )
 
-        await ctx.prisma.reservation.update({
-          where: { id: reservation.id },
-          data:  { status: 'settled', blockchain_tx_hash: result.txHash },
-        })
+      await ctx.prisma.reservation.update({
+        where: { id: reservation.id },
+        data:  { status: 'settled', blockchain_tx_hash: result.txHash },
+      })
 
+      return reservation.id
+    })
+
+    const settledPromises = await Promise.allSettled(promises)
+
+    for (let i = 0; i < settledPromises.length; i++) {
+      const p = settledPromises[i]
+      if (p.status === 'fulfilled') {
         results.success++
-      } catch (e: any) {
+      } else {
         results.failed++
-        results.errors.push(`${reservation.id}: ${e.message}`)
+        results.errors.push(`${pending[i].id}: ${p.reason instanceof Error ? p.reason.message : String(p.reason)}`)
       }
     }
 
