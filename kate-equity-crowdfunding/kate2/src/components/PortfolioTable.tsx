@@ -1,11 +1,23 @@
 'use client'
 
+import { useMemo } from 'react'
 import { trpc } from '@/lib/trpc/client'
 import Link from 'next/link'
 import { Briefcase, TrendingUp, ExternalLink, Layers } from 'lucide-react'
 
 export function PortfolioTable() {
   const { data: positions, isLoading } = trpc.investors.getMyPositions.useQuery()
+
+  const items = useMemo(() => positions ?? [], [positions])
+
+  // ⚡ Bolt: Memoize expensive array reduction to prevent recalculation on every render
+  const totalRWA = useMemo(() => {
+    return items.reduce((sum, p) => {
+      const qty = p.quantity ?? 0
+      const price = p.offer?.unit_price ?? 0
+      return sum + qty * price
+    }, 0)
+  }, [items])
 
   if (isLoading) {
     return (
@@ -22,15 +34,6 @@ export function PortfolioTable() {
       </div>
     )
   }
-
-  const items = positions ?? []
-
-  // Calculate total RWA value
-  const totalRWA = items.reduce((sum, p) => {
-    const qty = p.quantity ?? 0
-    const price = p.offer?.unit_price ?? 0
-    return sum + qty * price
-  }, 0)
 
   return (
     <div className="bg-kate-dark-blue border border-white/10 rounded-2xl overflow-hidden">

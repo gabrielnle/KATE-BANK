@@ -1,4 +1,0 @@
-## 2024-05-20 - Insecure update status endpoint for offers
-**Vulnerability:** The `updateStatus` procedure for offers in `kate-equity-crowdfunding/kate2/src/lib/trpc/routers/offers.ts` was an unprotected `protectedProcedure` instead of `adminProcedure`. This means any authenticated user could theoretically update the status of any offer (e.g. from 'draft' to 'active').
-**Learning:** TRPC endpoints must be correctly scoped based on who should have access. Just because a user is authenticated (`protectedProcedure`) doesn't mean they are authorized to perform actions meant for admins. Also the `create` offer endpoint in the same file is marked `admin` but uses `protectedProcedure`.
-**Prevention:** Always verify the authorization level needed for an action and use the correct TRPC middleware (`adminProcedure` vs `protectedProcedure`).

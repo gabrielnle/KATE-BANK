@@ -1,5 +1,6 @@
 'use client'
 
+import { useMemo } from 'react'
 import { trpc } from '@/lib/trpc/client'
 import { Wallet, Landmark, TrendingUp } from 'lucide-react'
 
@@ -9,6 +10,23 @@ export function DashboardKPICards() {
   const reservations = trpc.investors.getMyReservations.useQuery()
 
   const isLoading = balances.isLoading || positions.isLoading || reservations.isLoading
+
+  // Calculate values
+  const brzBalance = parseFloat(balances.data?.brz ?? '0')
+
+  // ⚡ Bolt: Memoize expensive array reductions to prevent recalculation on every render
+  const totalRWA = useMemo(() => {
+    return (positions.data ?? []).reduce((sum, p) => {
+      return sum + (p.quantity ?? 0) * (p.offer?.unit_price ?? 0)
+    }, 0)
+  }, [positions.data])
+
+  // ⚡ Bolt: Memoize array filtering and reduction
+  const totalInvested = useMemo(() => {
+    return (reservations.data ?? [])
+      .filter(r => ['confirmed', 'settled', 'pending_escrow'].includes(r.status ?? ''))
+      .reduce((sum, r) => sum + (r.amount_brz ?? 0), 0)
+  }, [reservations.data])
 
   if (isLoading) {
     return (
@@ -27,15 +45,6 @@ export function DashboardKPICards() {
       </div>
     )
   }
-
-  // Calculate values
-  const brzBalance = parseFloat(balances.data?.brz ?? '0')
-  const totalRWA = (positions.data ?? []).reduce((sum, p) => {
-    return sum + (p.quantity ?? 0) * (p.offer?.unit_price ?? 0)
-  }, 0)
-  const totalInvested = (reservations.data ?? [])
-    .filter(r => ['confirmed', 'settled', 'pending_escrow'].includes(r.status ?? ''))
-    .reduce((sum, r) => sum + (r.amount_brz ?? 0), 0)
 
   const cards = [
     {

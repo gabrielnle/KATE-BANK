@@ -1,4 +1,5 @@
 'use client'
+import { useMemo } from 'react'
 import { trpc } from '@/lib/trpc/client'
 import Link from 'next/link'
 import { TrendingUp, Coins, ArrowUpRight, ExternalLink } from 'lucide-react'
@@ -7,12 +8,18 @@ export default function PortfolioPage() {
   const { data: positions, isLoading } = trpc.investors.getMyPositions.useQuery()
   const { data: reservations }         = trpc.investors.getMyReservations.useQuery()
 
-  const totalValue = (positions ?? []).reduce(
-    (s: number, p: any) => s + (p.quantity ?? 0) * (p.average_price ?? 0),
-    0
-  )
+  // ⚡ Bolt: Memoize expensive array reduction
+  const totalValue = useMemo(() => {
+    return (positions ?? []).reduce(
+      (s: number, p: any) => s + (p.quantity ?? 0) * (p.average_price ?? 0),
+      0
+    )
+  }, [positions])
 
-  const settledCount = (reservations ?? []).filter((r: any) => r.status === 'settled').length
+  // ⚡ Bolt: Memoize array filtering
+  const settledCount = useMemo(() => {
+    return (reservations ?? []).filter((r: any) => r.status === 'settled').length
+  }, [reservations])
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
