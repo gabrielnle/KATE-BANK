@@ -21,29 +21,40 @@ export default async function OffersPage({ searchParams }: { searchParams: Promi
   const params = await searchParams
   const securityType = params.type ?? ''
 
-  const offers = await prisma.offer.findMany({
-    where: {
-      status:        params.status ?? 'active',
-      security_type: securityType || undefined,
-      ...(params.q ? {
-        issuer: {
-          OR: [
-            { legal_name:  { contains: params.q } },
-            { trade_name:  { contains: params.q } },
-            { sector:      { contains: params.q } },
-          ],
-        },
-      } : {}),
-    },
-    include: {
-      issuer: true,
-      reservations: {
-        where:  { status: { in: ['confirmed', 'settled'] } },
-        select: { amount_brz: true },
+  const [offers, reservationsAgg] = await Promise.all([
+    prisma.offer.findMany({
+      where: {
+        status:        params.status ?? 'active',
+        security_type: securityType || undefined,
+        ...(params.q ? {
+          issuer: {
+            OR: [
+              { legal_name:  { contains: params.q } },
+              { trade_name:  { contains: params.q } },
+              { sector:      { contains: params.q } },
+            ],
+          },
+        } : {}),
       },
-    },
-    orderBy: { created_at: 'desc' },
-  }).catch(() => [])
+      include: {
+        issuer: true,
+      },
+      orderBy: { created_at: 'desc' },
+    }),
+    prisma.reservation.groupBy({
+      by: ['offer_id'],
+      where: { status: { in: ['confirmed', 'settled'] } },
+      _sum: { amount_brz: true }
+    })
+  ]).catch(() => [[], []])
+
+  // Map for O(1) lookups instead of .filter() and .reduce() on the full array
+  const aggMap = new Map(
+    reservationsAgg.map(agg => [
+      agg.offer_id,
+      agg._sum.amount_brz ?? 0
+    ])
+  )
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -94,7 +105,8 @@ export default async function OffersPage({ searchParams }: { searchParams: Promi
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {offers.map(offer => {
-            const raised = offer.reservations.reduce((s, r) => s + (r.amount_brz ?? 0), 0)
+            // ⚡ Bolt: Offloaded to DB aggregate query to prevent loading all reservations into memory
+            const raised = aggMap.get(offer.id) ?? 0
             const progress = offer.max_target ? Math.min((raised / offer.max_target) * 100, 100) : 0
             const daysLeft = offer.end_date
               ? Math.max(0, Math.ceil((new Date(offer.end_date).getTime() - Date.now()) / 86400000))

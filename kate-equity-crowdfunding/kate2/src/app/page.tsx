@@ -56,12 +56,27 @@ const steps = [
 ]
 
 export default async function HomePage() {
-  const liveOffers = await prisma.offer.findMany({
-    where:   { status: 'active' },
-    include: { issuer: true, reservations: { select: { amount_brz: true, status: true } } },
-    take:    3,
-    orderBy: { created_at: 'desc' },
-  }).catch(() => [])
+  const [liveOffers, reservationsAgg] = await Promise.all([
+    prisma.offer.findMany({
+      where:   { status: 'active' },
+      include: { issuer: true },
+      take:    3,
+      orderBy: { created_at: 'desc' },
+    }),
+    prisma.reservation.groupBy({
+      by: ['offer_id'],
+      where: { status: { in: ['confirmed', 'settled'] } },
+      _sum: { amount_brz: true }
+    })
+  ]).catch(() => [[], []])
+
+  // Map for O(1) lookups instead of .filter() and .reduce() on the full array
+  const aggMap = new Map(
+    reservationsAgg.map(agg => [
+      agg.offer_id,
+      agg._sum.amount_brz ?? 0
+    ])
+  )
 
   return (
     <div>
@@ -144,9 +159,8 @@ export default async function HomePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {liveOffers.map(offer => {
-              const raised = offer.reservations
-                .filter(r => ['confirmed','settled'].includes(r.status ?? ''))
-                .reduce((s, r) => s + (r.amount_brz ?? 0), 0)
+              // ⚡ Bolt: Offloaded to DB aggregate query to prevent loading all reservations into memory
+              const raised = aggMap.get(offer.id) ?? 0
               const progress = offer.max_target ? Math.min((raised / offer.max_target) * 100, 100) : 0
 
               return (
