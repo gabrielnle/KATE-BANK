@@ -162,6 +162,52 @@ export const adminRouter = router({
       })
     }),
 
+  /** [ADMIN] Update investor type (e.g., promote to qualified/professional) */
+  updateInvestorStatus: adminProcedure
+    .input(z.object({
+      user_id: z.string(),
+      investor_type: z.enum(['retail', 'qualified', 'professional', 'lead']),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const existingProfile = await ctx.prisma.investorProfile.findUnique({
+        where: { user_id: input.user_id },
+      })
+
+      if (!existingProfile) {
+        throw new Error('Investor profile not found')
+      }
+
+      let annual_limit: number | null | undefined
+      if (input.investor_type === 'qualified' || input.investor_type === 'professional') {
+        annual_limit = null // No limit
+      } else if (existingProfile.is_active_investor) {
+        annual_limit = 20000
+      } else {
+        const income = existingProfile.annual_income ?? 0
+        const investments = existingProfile.financial_investments ?? 0
+        annual_limit = Math.max(3000, Math.min(income * 0.1, investments * 0.1))
+      }
+
+      await ctx.prisma.auditLog.create({
+        data: {
+          actor_user_id: ctx.userId,
+          action: 'update_investor_status',
+          entity_type: 'investorProfile',
+          entity_id: existingProfile.id,
+          previous_value: JSON.stringify({ investor_type: existingProfile.investor_type }),
+          new_value: JSON.stringify({ investor_type: input.investor_type }),
+        },
+      })
+
+      return ctx.prisma.investorProfile.update({
+        where: { user_id: input.user_id },
+        data: {
+          investor_type: input.investor_type,
+          annual_limit,
+        },
+      })
+    }),
+
   /** [ADMIN] Emit tokens for a single confirmed reservation via Stellar */
   processTokenJob: adminProcedure
     .input(z.object({ reservation_id: z.string() }))
