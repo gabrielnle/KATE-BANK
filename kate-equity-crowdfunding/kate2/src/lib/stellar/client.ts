@@ -493,7 +493,6 @@ export async function simulatePixToBRZ(
 
   trustTx.sign(userKeypair)
   await server.submitTransaction(trustTx)
-  console.info(`[SEP-24] Trustline BRZ established for ${userPublicKey}`)
 
   // ── Step 2: Anchor issues Payment operation to User Public Key ──────────────
   // The Anchor (bank) mints BRZ by sending a payment from its issuing account
