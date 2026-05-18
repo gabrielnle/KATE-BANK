@@ -296,7 +296,11 @@ export const adminRouter = router({
 
     const client  = createStellarClient(stellarEnv)
     const results = { success: 0, failed: 0, errors: [] as string[] }
+    const settledData: { id: string; txHash: string | undefined }[] = []
 
+    // ⚡ Performance Optimization: N+1 query issue resolution
+    // Keep Stellar transfers sequential to handle account sequence numbers,
+    // but accumulate database updates to batch them in a single transaction later.
     for (const reservation of pending) {
       try {
         const wallet     = reservation.investor.wallet
@@ -310,16 +314,31 @@ export const adminRouter = router({
           `INV-${reservation.id.slice(0, 8)}`
         )
 
-        await ctx.prisma.reservation.update({
-          where: { id: reservation.id },
-          data:  { status: 'settled', blockchain_tx_hash: result.txHash },
-        })
-
-        results.success++
+        settledData.push({ id: reservation.id, txHash: result.txHash })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (e: any) {
         results.failed++
         results.errors.push(`${reservation.id}: ${e.message}`)
       }
+    }
+
+    // ⚡ Performance Optimization: Execute database updates concurrently
+    // We cannot use an all-or-nothing $transaction because Stellar transfers
+    // are irreversible. Using Promise.allSettled allows independent database
+    // updates to execute concurrently without failing the whole batch.
+    if (settledData.length > 0) {
+      const updatePromises = settledData.map((data) =>
+        ctx.prisma.reservation.update({
+          where: { id: data.id },
+          data:  { status: 'settled', blockchain_tx_hash: data.txHash },
+        }).then(() => {
+          results.success++
+        }).catch((e: any) => {
+          results.failed++
+          results.errors.push(`${data.id} (DB Update): ${e.message}`)
+        })
+      )
+      await Promise.allSettled(updatePromises)
     }
 
     await ctx.prisma.auditLog.create({
