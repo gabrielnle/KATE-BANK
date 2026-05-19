@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { trpc } from '@/lib/trpc/client'
-import { Users, Search, Wallet, CheckCircle, XCircle, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react'
+import { Users, Search, Wallet, CheckCircle, XCircle, RefreshCw, ChevronDown, ChevronUp, Plus } from 'lucide-react'
 
 type User = {
   id: string
@@ -30,7 +30,8 @@ export default function AdminInvestidoresPage() {
 
   const { data: users, isLoading, refetch } = trpc.investors.listAll.useQuery()
 
-  const updateRole = trpc.admin.updateUserRole.useMutation({ onSuccess: () => refetch() })
+    const updateRole = trpc.admin.updateUserRole.useMutation({ onSuccess: () => refetch() })
+  const createWallet = trpc.admin.createWalletForUser.useMutation({ onSuccess: () => refetch() })
 
   const filtered = (users ?? []).filter((u: User) =>
     !search ||
@@ -165,12 +166,26 @@ export default function AdminInvestidoresPage() {
                     </div>
                   )}
 
-                  {user.wallet && (
+                                    {user.wallet ? (
                     <div>
                       <p className="text-white/30 text-xs mb-1 flex items-center gap-1">
                         <Wallet size={11} /> Wallet Stellar
                       </p>
                       <code className="text-white/50 text-xs font-mono break-all">{user.wallet.stellar_public_key}</code>
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="text-white/30 text-xs mb-2 flex items-center gap-1">
+                        <Wallet size={11} /> Wallet Stellar
+                      </p>
+                      <button
+                        onClick={() => createWallet.mutate({ user_id: user.id })}
+                        disabled={createWallet.isPending}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-kate-yellow text-kate-navy text-xs font-bold rounded-lg hover:brightness-110 transition-colors disabled:opacity-50"
+                      >
+                        <Plus size={14} />
+                        {createWallet.isPending ? 'Criando...' : 'Criar Wallet'}
+                      </button>
                     </div>
                   )}
                 </div>
