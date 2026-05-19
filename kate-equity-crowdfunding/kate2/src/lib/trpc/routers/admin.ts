@@ -331,19 +331,31 @@ export const adminRouter = router({
     const client  = createStellarClient(stellarEnv)
     const results = { success: 0, failed: 0, errors: [] as string[] }
 
-    const promises = pending.map(async (reservation) => {
-      const wallet     = reservation.investor.wallet
-      const tokenAsset = reservation.offer.token_assets[0]
-      if (!wallet || !tokenAsset) {
-        throw new Error("Missing wallet or token asset")
-      }
+    for (const reservation of pending) {
+      try {
+        const wallet = reservation.investor.wallet
+        if (!wallet) {
+          results.failed++
+          continue
+        }
 
-      const result = await client.transferTokens(
-        wallet.stellar_public_key,
-        tokenAsset.token_symbol ?? 'RWA',
-        reservation.token_quantity ?? 0,
-        `INV-${reservation.id.slice(0, 8)}`
-      )
+        const tokenAsset = reservation.offer.token_assets[0]
+        if (!tokenAsset) {
+          results.failed++
+          continue
+        }
+
+        const result = await client.transferTokens(
+          wallet.stellar_public_key,
+          tokenAsset.token_symbol ?? 'RWA',
+          reservation.token_quantity ?? 0,
+          `INV-${reservation.id.slice(0, 8)}`
+        )
+
+        await ctx.prisma.reservation.update({
+          where: { id: reservation.id },
+          data:  { status: 'settled', blockchain_tx_hash: result.txHash },
+        })
 
       await ctx.prisma.reservation.update({
         where: { id: reservation.id },
