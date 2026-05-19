@@ -437,7 +437,10 @@ export async function simulatePixToBRZ(
   let userKeypair: StellarSdk.Keypair
 
   if (!BANK_BRZ_SECRET) {
-    throw new Error('Variável de ambiente BANK_BRZ_SECRET ausente. Por favor, configure a chave secreta do banco no .env.')
+    throw new Error('Variável de ambiente BANK_BRZ_SECRET ausente. Configure no .env e na Vercel.')
+  }
+  if (!BANK_BRZ_PUBLIC) {
+    throw new Error('Variável de ambiente BANK_BRZ_PUBLIC ausente. Configure no .env e na Vercel.')
   }
 
   try {
