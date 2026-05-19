@@ -1,3 +1,7 @@
-## 2024-05-18 - Offload wallet creation retry mechanism
-**Learning:** Wallet creation may fail during user registration due to third-party APIs (Stellar Friendbot) rate limits or other transient errors.
-**Action:** When a critical but non-blocking dependency (like a third-party wallet creation) fails during onboarding, implement a retry mechanism either as a user action or an admin action to prevent the user from being stuck in a broken state without manual intervention.
+## 2024-05-16 - DB Filtering on included arrays
+**Learning:** Prisma's 'include' allows filtering the returned relation arrays with 'where'. Fetching full relation arrays only to filter them in JavaScript using '.filter()' creates massive overhead on memory and database bandwidth.
+**Action:** Use 'where' inside Prisma's 'include' whenever possible to push the filtering to the database.
+
+## 2025-05-18 - Optimize asynchronous iterations
+**Learning:** Sequential awaits inside `for...of` loops for independent API calls (like adding documents or records) result in linear time scaling.
+**Action:** Always replace sequential awaits for independent operations with `Promise.all` mapping to process operations concurrently, especially when interacting with external services or mutation endpoints, which can provide 4x+ speedups for batches.

@@ -175,12 +175,13 @@ export default function SubmissaoWizardPage() {
         { type: 'cap_table',        url: form.cap_table_url },
         { type: 'financial_report', url: form.financial_report_url },
       ].filter(d => d.url);
-      for (const d of docs) {
-        await addDocument.mutateAsync({
+      // Optimize document submission to run in parallel
+      await Promise.all(docs.map(d =>
+        addDocument.mutateAsync({
           offer_id: form.offer_id, document_type: d.type,
           file_url: d.url, is_public: false,
-        });
-      }
+        })
+      ));
     }
   };
 
