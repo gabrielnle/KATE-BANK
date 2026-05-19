@@ -45,13 +45,14 @@ export const secondaryRouter = router({
 
       // Validate seller has position
       if (input.intention_type === 'sell') {
-        const position = await ctx.prisma.investorPosition.findFirst({
+        const validPositionCount = await ctx.prisma.investorPosition.count({
           where: {
-            user_id:       ctx.userId,
+            user_id:        ctx.userId,
             token_asset_id: input.token_asset_id,
+            quantity:       { gte: input.quantity },
           },
         })
-        if (!position || (position.quantity ?? 0) < input.quantity) {
+        if (validPositionCount === 0) {
           throw new Error('Insufficient token balance for this sale')
         }
       }

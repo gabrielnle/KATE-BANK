@@ -237,8 +237,6 @@ export const offersRouter = router({
         },
       })
 
-      console.info(`[x402 Protocol] Micropayment validated on-chain. Document unlocked. | doc: ${input.documentId} | user: ${ctx.userId} | ${priceXLM} XLM | tx: ${result.hash}`)
-
       return {
         alreadyUnlocked: false,
         fileUrl: doc.file_url ?? `/documents/${input.documentId}.pdf`,
@@ -325,11 +323,6 @@ export const offersRouter = router({
           withdrawal_deadline: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000), // 5 days CVM 88
         },
       })
-
-      console.log(
-        `[Invest] ${ctx.userId} invested R$ ${input.amount} (${input.currency}) in offer ${input.offerId} ` +
-        `| ${tokenQuantity} tokens | route: ${txResult.route} | tx: ${txResult.txHash}`
-      )
 
       return {
         reservationId: reservation.id,

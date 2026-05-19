@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { router, adminProcedure } from '../init'
 import { createStellarClient } from '@/lib/stellar/client'
+import { createWalletForUser } from '@/lib/stellar/wallet'
 
 const stellarEnv = {
   STELLAR_KATE_SECRET_KEY:  process.env.STELLAR_KATE_SECRET_KEY,
@@ -150,6 +151,39 @@ export const adminRouter = router({
     }),
 
   /** Update user role */
+
+  /** [ADMIN] Create wallet for a user */
+  createWalletForUser: adminProcedure
+    .input(z.object({ user_id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const existing = await ctx.prisma.wallet.findUnique({
+        where: { user_id: input.user_id },
+      })
+      if (existing) {
+        return { publicKey: existing.stellar_public_key, alreadyExisted: true }
+      }
+
+      const { publicKey } = await createWalletForUser(input.user_id)
+
+      // On testnet/simulation: fund with Friendbot
+      if (stellarEnv.STELLAR_USE_TESTNET !== 'false') {
+        const client = createStellarClient(stellarEnv)
+        await client.fundTestnetAccount(publicKey).catch(() => null)
+      }
+
+      await ctx.prisma.auditLog.create({
+        data: {
+          actor_user_id: ctx.userId,
+          action: 'admin_create_wallet',
+          entity_type: 'wallet',
+          entity_id: input.user_id,
+          new_value: JSON.stringify({ publicKey }),
+        },
+      })
+
+      return { publicKey, alreadyExisted: false }
+    }),
+
   updateUserRole: adminProcedure
     .input(z.object({
       user_id: z.string(),
@@ -299,9 +333,17 @@ export const adminRouter = router({
 
     for (const reservation of pending) {
       try {
-        const wallet     = reservation.investor.wallet
+        const wallet = reservation.investor.wallet
+        if (!wallet) {
+          results.failed++
+          continue
+        }
+
         const tokenAsset = reservation.offer.token_assets[0]
-        if (!wallet || !tokenAsset) { results.failed++; continue }
+        if (!tokenAsset) {
+          results.failed++
+          continue
+        }
 
         const result = await client.transferTokens(
           wallet.stellar_public_key,
@@ -315,10 +357,23 @@ export const adminRouter = router({
           data:  { status: 'settled', blockchain_tx_hash: result.txHash },
         })
 
+      await ctx.prisma.reservation.update({
+        where: { id: reservation.id },
+        data:  { status: 'settled', blockchain_tx_hash: result.txHash },
+      })
+
+      return reservation.id
+    })
+
+    const settledPromises = await Promise.allSettled(promises)
+
+    for (let i = 0; i < settledPromises.length; i++) {
+      const p = settledPromises[i]
+      if (p.status === 'fulfilled') {
         results.success++
-      } catch (e: any) {
+      } else {
         results.failed++
-        results.errors.push(`${reservation.id}: ${e.message}`)
+        results.errors.push(`${pending[i].id}: ${p.reason instanceof Error ? p.reason.message : String(p.reason)}`)
       }
     }
 
