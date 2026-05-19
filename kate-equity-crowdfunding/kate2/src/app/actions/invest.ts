@@ -4,8 +4,16 @@ import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import crypto from 'crypto';
+import { createClient } from '@/lib/supabase/server';
 
 export async function processInvestment(offerId: string, amount: number) {
+  const supabase = await createClient();
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session || !session.user) {
+    throw new Error('Não autorizado. Faça login para investir.');
+  }
+
   // 1. Get the offer
   const offer = await prisma.offer.findUnique({
     where: { id: offerId },
@@ -15,20 +23,13 @@ export async function processInvestment(offerId: string, amount: number) {
     throw new Error('Oferta não encontrada');
   }
 
-  // 2. Mock a User for this simulation (in a real app, this would be from session)
-  let user = await prisma.user.findFirst({
-    where: { email: 'investor@mock.com' }
+  // 2. Get the authenticated user
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id }
   });
 
   if (!user) {
-    user = await prisma.user.create({
-      data: {
-        email: 'investor@mock.com',
-        password_hash: 'mock',
-        full_name: 'Investidor Simulado',
-        role: 'investor'
-      }
-    });
+    throw new Error('Usuário não encontrado');
   }
 
   // 3. Create Reservation
