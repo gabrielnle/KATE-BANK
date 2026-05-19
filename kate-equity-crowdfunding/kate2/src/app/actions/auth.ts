@@ -4,13 +4,25 @@ import { createClient } from '@/lib/supabase/server'
 import prisma from '@/lib/prisma'
 import { createWalletForUser } from '@/lib/stellar/wallet'
 
-export async function signUpUser(formData: Record<string, string | number>) {
+interface SignUpFormData {
+  email: string
+  password: string
+  fullName?: string
+  cpf?: string
+  phone?: string
+  birthDate?: string
+  investorType?: string
+  annualIncome?: string | number
+  financialInvestments?: string | number
+}
+
+export async function signUpUser(formData: SignUpFormData) {
   const supabase = await createClient()
 
   // 1. Supabase Auth signup
   const { data: authData, error: authError } = await supabase.auth.signUp({
-    email: formData.email,
-    password: formData.password,
+    email: String(formData.email),
+    password: String(formData.password),
   })
 
   if (authError || !authData.user) {
