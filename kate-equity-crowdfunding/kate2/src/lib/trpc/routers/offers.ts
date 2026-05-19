@@ -237,8 +237,6 @@ export const offersRouter = router({
         },
       })
 
-      console.info(`[x402 Protocol] Micropayment validated on-chain. Document unlocked. | doc: ${input.documentId} | user: ${ctx.userId} | ${priceXLM} XLM | tx: ${result.hash}`)
-
       return {
         alreadyUnlocked: false,
         fileUrl: doc.file_url ?? `/documents/${input.documentId}.pdf`,
