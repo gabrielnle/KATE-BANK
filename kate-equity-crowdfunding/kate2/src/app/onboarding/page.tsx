@@ -45,12 +45,15 @@ export default function OnboardingPage() {
   const hasSequentialNumbers = (pass: string) => {
     for (let i = 0; i < pass.length - 2; i++) {
       const c1 = pass.charCodeAt(i);
-      const c2 = pass.charCodeAt(i+1);
-      const c3 = pass.charCodeAt(i+2);
-      if (c1 >= 48 && c1 <= 57 && c2 >= 48 && c2 <= 57 && c3 >= 48 && c3 <= 57) {
-        if (c1 + 1 === c2 && c2 + 1 === c3) return true;
-        if (c1 - 1 === c2 && c2 - 1 === c3) return true;
-      }
+      const c2 = pass.charCodeAt(i + 1);
+      const c3 = pass.charCodeAt(i + 2);
+
+      if (c1 < 48 || c1 > 57) continue;
+      if (c2 < 48 || c2 > 57) continue;
+      if (c3 < 48 || c3 > 57) continue;
+
+      if (c1 + 1 === c2 && c2 + 1 === c3) return true;
+      if (c1 - 1 === c2 && c2 - 1 === c3) return true;
     }
     return false;
   };
