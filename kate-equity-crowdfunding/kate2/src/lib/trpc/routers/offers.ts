@@ -326,11 +326,6 @@ export const offersRouter = router({
         },
       })
 
-      console.log(
-        `[Invest] ${ctx.userId} invested R$ ${input.amount} (${input.currency}) in offer ${input.offerId} ` +
-        `| ${tokenQuantity} tokens | route: ${txResult.route} | tx: ${txResult.txHash}`
-      )
-
       return {
         reservationId: reservation.id,
         txHash: txResult.txHash,
