@@ -4,6 +4,7 @@ import './globals.css'
 import { Navbar } from '../components/Navbar'
 import { Footer } from '../components/Footer'
 import { TRPCProvider } from '@/lib/trpc/Provider'
+import { Analytics } from '@vercel/analytics/next'
 
 const inter = Inter({ subsets: ['latin'], display: 'swap' })
 
@@ -34,6 +35,7 @@ export default function RootLayout({
             <Footer />
           </div>
         </TRPCProvider>
+        <Analytics />
       </body>
     </html>
   )
