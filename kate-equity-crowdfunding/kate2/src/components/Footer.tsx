@@ -42,9 +42,9 @@ export function Footer() {
               Conformidade CVM 88 e segurança para seus investimentos.
             </p>
             <div className="flex gap-3 mt-5">
-              <a href="#" className="text-white/40 hover:text-kate-yellow transition-colors"><Globe size={18} /></a>
-              <a href="#" className="text-white/40 hover:text-kate-yellow transition-colors"><Rss size={18} /></a>
-              <a href="#" className="text-white/40 hover:text-kate-yellow transition-colors"><Code2 size={18} /></a>
+              <a href="#" aria-label="Website" className="text-white/40 hover:text-kate-yellow transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kate-yellow rounded"><Globe size={18} /></a>
+              <a href="#" aria-label="Blog RSS" className="text-white/40 hover:text-kate-yellow transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kate-yellow rounded"><Rss size={18} /></a>
+              <a href="#" aria-label="Código Fonte" className="text-white/40 hover:text-kate-yellow transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kate-yellow rounded"><Code2 size={18} /></a>
             </div>
           </div>
 
