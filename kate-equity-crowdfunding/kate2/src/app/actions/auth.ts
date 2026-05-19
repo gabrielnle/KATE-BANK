@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import prisma from '@/lib/prisma'
 import { createWalletForUser } from '@/lib/stellar/wallet'
 
-export async function signUpUser(formData: any) {
+export async function signUpUser(formData: Record<string, string | number>) {
   const supabase = await createClient()
 
   // 1. Supabase Auth signup
@@ -42,20 +42,19 @@ export async function signUpUser(formData: any) {
 
     // 3. Generate Stellar wallet (Testnet) and persist to DB
     try {
-      const { publicKey } = await createWalletForUser(user.id)
-      console.log(`[Onboarding] Wallet created for user ${user.id}: ${publicKey}`)
-    } catch (walletErr: any) {
+      await createWalletForUser(user.id)
+    } catch (walletErr: unknown) {
       // Wallet creation is non-blocking — user can still use the platform.
       // A retry mechanism or admin action can fix this later.
-      console.error('[Onboarding] Wallet creation failed (non-blocking):', walletErr.message)
+      console.error('[Onboarding] Wallet creation failed (non-blocking):', (walletErr as Error).message)
     }
 
     return { success: true }
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Prisma Error:', err)
     // If Prisma fails, ideally we should delete the Supabase user, but we'd need the service_role key.
     // For now, return an error.
-    return { error: 'Erro ao salvar dados no banco de dados local. ' + err.message }
+    return { error: 'Erro ao salvar dados no banco de dados local. ' + (err as Error).message }
   }
 }
 

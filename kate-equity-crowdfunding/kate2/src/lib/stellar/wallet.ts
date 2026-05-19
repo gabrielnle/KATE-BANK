@@ -41,7 +41,6 @@ export async function generateAndFundWallet(): Promise<{
     )
   }
 
-  console.info(`[Stellar] Account funded via Friendbot: ${publicKey}`)
   return { publicKey, secretKey }
 }
 

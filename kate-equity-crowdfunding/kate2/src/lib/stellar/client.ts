@@ -469,7 +469,6 @@ export async function simulatePixToBRZ(
   try {
     await server.loadAccount(userPublicKey)
   } catch {
-    console.info('[SEP-24] Funding investor account via Friendbot...')
     await fetch(`https://friendbot.stellar.org?addr=${userPublicKey}`)
     await new Promise(r => setTimeout(r, 2000))
   }
@@ -493,7 +492,6 @@ export async function simulatePixToBRZ(
 
   trustTx.sign(userKeypair)
   await server.submitTransaction(trustTx)
-  console.info(`[SEP-24] Trustline BRZ established for ${userPublicKey}`)
 
   // ── Step 2: Anchor issues Payment operation to User Public Key ──────────────
   // The Anchor (bank) mints BRZ by sending a payment from its issuing account
@@ -655,10 +653,8 @@ export async function executeDirectBrzInvest(
 
 export function createStellarClient(env: StellarEnv): StellarClient | SimulatedStellarClient {
   if (!env.STELLAR_KATE_SECRET_KEY || env.STELLAR_SIMULATION_MODE === 'true') {
-    console.log('[Stellar] Using SimulatedStellarClient')
     return new SimulatedStellarClient()
   }
-  console.log('[Stellar] Using real StellarClient on', env.STELLAR_USE_TESTNET !== 'false' ? 'TESTNET' : 'MAINNET')
   return new StellarClient(env)
 }
 
