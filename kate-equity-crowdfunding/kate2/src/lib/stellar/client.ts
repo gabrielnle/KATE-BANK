@@ -469,7 +469,6 @@ export async function simulatePixToBRZ(
   try {
     await server.loadAccount(userPublicKey)
   } catch {
-    console.info('[SEP-24] Funding investor account via Friendbot...')
     await fetch(`https://friendbot.stellar.org?addr=${userPublicKey}`)
     await new Promise(r => setTimeout(r, 2000))
   }
