@@ -655,10 +655,8 @@ export async function executeDirectBrzInvest(
 
 export function createStellarClient(env: StellarEnv): StellarClient | SimulatedStellarClient {
   if (!env.STELLAR_KATE_SECRET_KEY || env.STELLAR_SIMULATION_MODE === 'true') {
-    console.log('[Stellar] Using SimulatedStellarClient')
     return new SimulatedStellarClient()
   }
-  console.log('[Stellar] Using real StellarClient on', env.STELLAR_USE_TESTNET !== 'false' ? 'TESTNET' : 'MAINNET')
   return new StellarClient(env)
 }
 
