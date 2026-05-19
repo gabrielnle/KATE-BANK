@@ -1,5 +1,6 @@
-import { expect, test, describe } from "bun:test";
-import { SimulatedStellarClient, getStellarConfigDebug, type StellarEnv } from "./client";
+import { expect, test, describe, spyOn } from "bun:test";
+import { SimulatedStellarClient, StellarClient } from "./client";
+import * as StellarSdk from "@stellar/stellar-sdk";
 
 describe("SimulatedStellarClient", () => {
   test("generateKeypair returns valid keys with cryptographically secure random ID", () => {
@@ -19,39 +20,58 @@ describe("SimulatedStellarClient", () => {
   });
 });
 
-describe("getStellarConfigDebug", () => {
-  test("handles missing STELLAR_USE_TESTNET by defaulting to true", () => {
-    const env: StellarEnv = {
-      STELLAR_KATE_SECRET_KEY: "secret",
-      STELLAR_KATE_PUBLIC_KEY: "public",
-      STELLAR_SIMULATION_MODE: "false"
-    };
+describe("StellarClient", () => {
+  describe("testConnection", () => {
+    test("handles 404 error by returning connected: true", async () => {
+      const keypair = StellarSdk.Keypair.random();
+      const client = new StellarClient({
+        STELLAR_KATE_SECRET_KEY: keypair.secret(),
+        STELLAR_USE_TESTNET: 'true'
+      });
 
-    const config = getStellarConfigDebug(env);
-    expect(config.isTestnet).toBe(true);
-  });
+      const serverSpy = spyOn((client as unknown as { server: { loadAccount: () => Promise<unknown> } }).server, "loadAccount").mockRejectedValue({
+        response: { status: 404 }
+      });
 
-  test("handles STELLAR_USE_TESTNET=false correctly", () => {
-    const env: StellarEnv = {
-      STELLAR_KATE_SECRET_KEY: "secret",
-      STELLAR_KATE_PUBLIC_KEY: "public",
-      STELLAR_USE_TESTNET: "false",
-      STELLAR_SIMULATION_MODE: "false"
-    };
+      const result = await client.testConnection();
+      expect(serverSpy).toHaveBeenCalledWith(keypair.publicKey());
+      expect(result).toEqual({
+        connected: true,
+        network: 'testnet',
+        katePublicKey: keypair.publicKey(),
+      });
+    });
 
-    const config = getStellarConfigDebug(env);
-    expect(config.isTestnet).toBe(false);
-  });
+    test("throws other errors", async () => {
+      const keypair = StellarSdk.Keypair.random();
+      const client = new StellarClient({
+        STELLAR_KATE_SECRET_KEY: keypair.secret(),
+        STELLAR_USE_TESTNET: 'true'
+      });
 
-  test("handles STELLAR_USE_TESTNET=true correctly", () => {
-    const env: StellarEnv = {
-      STELLAR_KATE_SECRET_KEY: "secret",
-      STELLAR_KATE_PUBLIC_KEY: "public",
-      STELLAR_USE_TESTNET: "true",
-      STELLAR_SIMULATION_MODE: "false"
-    };
+      const errorMessage = "Network error";
+      const serverSpy = spyOn((client as unknown as { server: { loadAccount: () => Promise<unknown> } }).server, "loadAccount").mockRejectedValue(new Error(errorMessage));
 
-    const config = getStellarConfigDebug(env);
-    expect(config.isTestnet).toBe(true);
+      await expect(client.testConnection()).rejects.toThrow(errorMessage);
+      expect(serverSpy).toHaveBeenCalledWith(keypair.publicKey());
+    });
+
+    test("returns connected: true when no error is thrown", async () => {
+      const keypair = StellarSdk.Keypair.random();
+      const client = new StellarClient({
+        STELLAR_KATE_SECRET_KEY: keypair.secret(),
+        STELLAR_USE_TESTNET: 'true'
+      });
+
+      const serverSpy = spyOn((client as unknown as { server: { loadAccount: () => Promise<unknown> } }).server, "loadAccount").mockResolvedValue({} as unknown);
+
+      const result = await client.testConnection();
+      expect(serverSpy).toHaveBeenCalledWith(keypair.publicKey());
+      expect(result).toEqual({
+        connected: true,
+        network: 'testnet',
+        katePublicKey: keypair.publicKey(),
+      });
+    });
   });
 });
