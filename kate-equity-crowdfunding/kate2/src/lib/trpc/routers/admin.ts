@@ -360,7 +360,7 @@ export const adminRouter = router({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (e: any) {
         results.failed++
-        results.errors.push(`${pending[i].id}: ${p.reason instanceof Error ? p.reason.message : String(p.reason)}`)
+        results.errors.push(`${reservation.id}: ${e.message ?? String(e)}`)
       }
     }
 
