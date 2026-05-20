@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import prisma from '@/lib/prisma'
 import { createWalletForUser } from '@/lib/stellar/wallet'
+import { Prisma } from '@prisma/client'
 
 interface SignUpFormData {
   email: string
@@ -18,6 +19,25 @@ interface SignUpFormData {
 
 export async function signUpUser(formData: SignUpFormData) {
   const supabase = await createClient()
+
+  // 0. Pre-flight: check for duplicate CPF or email in local DB
+  if (formData.cpf) {
+    const existingByCpf = await prisma.user.findUnique({
+      where: { cpf: formData.cpf },
+      select: { id: true },
+    })
+    if (existingByCpf) {
+      return { error: 'Já existe uma conta cadastrada com este CPF. Faça login ou utilize a recuperação de senha.' }
+    }
+  }
+
+  const existingByEmail = await prisma.user.findUnique({
+    where: { email: formData.email },
+    select: { id: true },
+  })
+  if (existingByEmail) {
+    return { error: 'Já existe uma conta cadastrada com este e-mail. Faça login ou utilize a recuperação de senha.' }
+  }
 
   // 1. Supabase Auth signup
   const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -65,8 +85,21 @@ export async function signUpUser(formData: SignUpFormData) {
   } catch (err: unknown) {
     console.error('Prisma Error:', err)
     // If Prisma fails, ideally we should delete the Supabase user, but we'd need the service_role key.
-    // For now, return an error.
-    return { error: 'Erro ao salvar dados no banco de dados local. ' + (err as Error).message }
+
+    // Handle unique constraint violations with user-friendly messages
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+      const target = (err.meta?.target as string[]) || []
+      if (target.includes('cpf')) {
+        return { error: 'Já existe uma conta cadastrada com este CPF. Faça login ou utilize a recuperação de senha.' }
+      }
+      if (target.includes('email')) {
+        return { error: 'Já existe uma conta cadastrada com este e-mail. Faça login ou utilize a recuperação de senha.' }
+      }
+      return { error: 'Já existe uma conta com os dados informados. Verifique seu CPF e e-mail.' }
+    }
+
+    // Generic fallback — never leak internal error details to the client
+    return { error: 'Erro inesperado ao criar sua conta. Tente novamente em alguns instantes.' }
   }
 }
 

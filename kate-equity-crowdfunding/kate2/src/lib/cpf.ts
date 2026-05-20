@@ -59,6 +59,7 @@ export type CPFValidationStatus =
   | 'not_found'
   | 'suspended'
   | 'cancelled'
+  | 'already_registered'
   | 'error';
 
 export interface CPFValidationResult {

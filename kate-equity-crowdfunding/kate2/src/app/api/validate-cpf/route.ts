@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isValidCPF } from '@/lib/cpf';
+import prisma from '@/lib/prisma';
 
 /**
  * API Route: POST /api/validate-cpf
@@ -35,6 +36,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         status: 'invalid_digits',
         message: 'CPF inválido. Os dígitos verificadores não conferem.',
+      });
+    }
+
+    // Verifica se o CPF já está cadastrado no banco de dados
+    const existingUser = await prisma.user.findUnique({
+      where: { cpf: digits },
+      select: { id: true },
+    });
+    if (existingUser) {
+      return NextResponse.json({
+        status: 'already_registered',
+        message: 'Este CPF já possui uma conta cadastrada. Faça login ou utilize a recuperação de senha.',
       });
     }
 
